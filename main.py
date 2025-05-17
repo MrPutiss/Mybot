@@ -1,4 +1,5 @@
 import logging
+import random
 
 import telegram
 
@@ -11,14 +12,19 @@ CHOOSE_PET, INTERACT = 0, 1
 TIMER = 3600
 
 pets = {}
+elemss = {'Вода': 'Земля', 'Земля': 'Огонь', 'Огонь': 'Воздух', 'Воздух': 'Вода'}
 con = sqlite3.connect("data/bd/tamagoni.db")
 cur = con.cursor()
-ACTIONS = ["Кормить", "Мыть", "Гулять", "Спать", "Сражаться."]
+ACTIONS = ["Кормить", "Мыть", "Гулять", "Спать", "Сражаться"]
 bot = telegram.Bot(token=BOT_TOKEN)
+life = ["Лиса", "Тюлень", "Таракан", "Голубь"]
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
-    reply_keyboard = [["Огонь", "Вода", "Таракан", "Воздух"]]
+    reply_keyboard = [["Лиса", "Тюлень", "Таракан", "Голубь"]]
     await bot.send_photo(chat_id=user.id, photo="data/image/bug.png")
+    await bot.send_photo(chat_id=user.id, photo="data/image/seal.png")
+    await bot.send_photo(chat_id=user.id, photo="data/image/pigeon.jpg")
+    await bot.send_photo(chat_id=user.id, photo="data/image/fox.png")
     await update.message.reply_text(
         "Привет! Выбери себе питомца:",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
@@ -33,7 +39,7 @@ async def choose_pet(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 WHERE name = ?""", (pet,)).fetchall()
     pets[user.id] = {
         "type": pet,
-        "lvl": 0,
+        "lvl": 1,
         "exp": 0,
         "element": result[0][2],
         "damage": result[0][3],
@@ -139,6 +145,7 @@ async def interact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     action = update.message.text
     pet = pets.get(user.id)
+    print(pet)
 
     if not pet:
         await update.message.reply_text("Сначала выбери питомца с помощью /start")
@@ -165,6 +172,53 @@ async def interact(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = "Он выспался!"
         b = Sleep(update, context)
         await b.set_timer_sleep(update, context)
+    elif action == "Сражаться":
+        response = "Итог"
+        prot = random.choice(life)
+        result = cur.execute("""SELECT * FROM pets
+                    WHERE name = ?""", (prot,)).fetchall()
+        prot_ststs = {
+            "type": prot,
+            "lvl": max(random.randrange(pet["lvl"] - 2, pet["lvl"] + 2), 1),
+            "exp": 0,
+            "element": result[0][2],
+            "damage": result[0][3],
+            "armor": result[0][4],
+            "helth": result[0][5],
+        }
+        prot_ststs["damage"] *= prot_ststs["lvl"]
+        prot_ststs["armor"] *= prot_ststs["lvl"]
+        prot_ststs["helth"] *= prot_ststs["lvl"]
+        await update.message.reply_text(f'Против вас бьеться {prot_ststs["type"]}, {prot_ststs["lvl"]} уровня')
+        while True:
+            if elemss[pet["element"]] == prot_ststs["element"]:
+                prot_ststs["helth"] -= (pet["damage"] - ((pet["damage"] * prot_ststs["armor"]) / 100)) * 2
+            else:
+                prot_ststs["helth"] -= pet["damage"] - ((pet["damage"] * prot_ststs["armor"]) / 100)
+            if prot_ststs["helth"] <= 0:
+                await update.message.reply_text("Вы победили")
+                pet["exp"] += 20
+                if pet["exp"]  >= 100:
+
+                    pet["exp"] %= 100
+                    pet["lvl"] += 1
+                    await update.message.reply_text(f"Вы получили {pet["lvl"]} уровень!")
+                    result = cur.execute("""SELECT * FROM pets
+                                   WHERE name = ?""", (pet["type"],)).fetchall()
+                    pet["damage"] = result[0][3] * pet["lvl"]
+                    pet["armor"] = result[0][4] * pet["lvl"]
+                    pet["helth"] = result[0][5] * pet["lvl"]
+                break
+            if elemss[prot_ststs["element"]] == pet["element"]:
+                pet["helth"] -= (prot_ststs["damage"] - ((prot_ststs["damage"] * pet["armor"]) / 100)) * 2
+            else:
+                pet["helth"] -= prot_ststs["damage"] - ((prot_ststs["damage"] * pet["armor"]) / 100)
+            if pet["helth"] <= 0:
+                await update.message.reply_text("Вы проиграли")
+                break
+        result = cur.execute("""SELECT * FROM pets
+                                           WHERE name = ?""", (pet["type"],)).fetchall()
+        pet["helth"] = result[0][5] * pet["lvl"]
     else:
         response = "Неизвестная команда."
 
