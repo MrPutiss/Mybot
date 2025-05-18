@@ -17,6 +17,8 @@ cur = con.cursor()
 ACTIONS = ["Кормить", "Мыть", "Гулять", "Спать", "Сражаться"]
 bot = telegram.Bot(token=BOT_TOKEN)
 life = ["Лиса", "Тюлень", "Таракан", "Голубь"]
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     reply_keyboard = [["Лиса", "Тюлень", "Таракан", "Голубь"]]
@@ -30,6 +32,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     return CHOOSE_PET
+
 
 async def choose_pet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
@@ -60,6 +63,7 @@ class Food():
     def __init__(self, update, context):
         self.update = update
         self.context = context
+
     async def task_food(self, context):
         """Выводит сообщение"""
         await context.bot.send_message(context.job.chat_id, text=f'Твой питомец проголодался!')
@@ -81,6 +85,7 @@ class Sleep():
     def __init__(self, update, context):
         self.update = update
         self.context = context
+
     async def task_sleep(self, context):
         """Выводит сообщение"""
         await context.bot.send_message(context.job.chat_id, text=f'Твой питомец устал!')
@@ -102,6 +107,7 @@ class Walk():
     def __init__(self, update, context):
         self.update = update
         self.context = context
+
     async def task_walk(self, context):
         """Выводит сообщение"""
         await context.bot.send_message(context.job.chat_id, text=f'Твой питомец скучает!')
@@ -123,6 +129,7 @@ class Wash():
     def __init__(self, update, context):
         self.update = update
         self.context = context
+
     async def task_wash(self, context):
         """Выводит сообщение"""
         await context.bot.send_message(context.job.chat_id, text=f'Твой питомец испачкался!')
@@ -197,8 +204,7 @@ async def interact(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if prot_ststs["helth"] <= 0:
                 await update.message.reply_text("Вы победили")
                 pet["exp"] += 20
-                if pet["exp"]  >= 100:
-
+                if pet["exp"] >= 100:
                     pet["exp"] %= 100
                     pet["lvl"] += 1
                     await update.message.reply_text(f"Вы получили {pet["lvl"]} уровень!")
@@ -236,9 +242,11 @@ async def interact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(response + "\n\n" + status)
     return INTERACT
 
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("")
     return ConversationHandler.END
+
 
 def main():
     TOKEN = BOT_TOKEN
@@ -256,6 +264,7 @@ def main():
 
     app.add_handler(conv_handler)
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
